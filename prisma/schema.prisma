@@ -1,0 +1,163 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  fullName     String
+  avatarUrl    String?
+  aiProvider   String        @default("gemini")
+  customApiKey String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  items        ArchiveItem[]
+  categories   Category[]
+  tags         Tag[]
+  activityLogs ActivityLog[]
+}
+
+model Category {
+  id              String        @id @default(cuid())
+  userId          String
+  name            String
+  slug            String
+  color           String        @default("#6366f1")
+  icon            String        @default("Folder")
+  description     String?
+  isSystemDefault Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           ArchiveItem[]
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  color     String    @default("#3b82f6")
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     ItemTag[]
+}
+
+model ArchiveItem {
+  id                   String            @id @default(cuid())
+  userId               String
+  categoryId           String?
+  title                String
+  description          String?
+  itemType             String            @default("DOCUMENT") // DOCUMENT, CERTIFICATE, PROJECT, ACHIEVEMENT, NOTE
+  fileUrl              String?
+  fileName             String?
+  fileType             String?
+  fileSize             Int?
+  rawTextContent       String?
+  aiSummary            String?
+  aiExtractedKeyValues String?           // JSON string
+  importanceLevel      Int               @default(3) // 1 to 5
+  isArchived           Boolean           @default(false)
+  isFavorite           Boolean           @default(false)
+  dateOccurred         DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category             Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags                 ItemTag[]
+  certificateMeta      CertificateMeta?
+  projectMeta          ProjectMeta?
+  achievementMeta      AchievementMeta?
+  noteMeta             NoteMeta?
+  embeddingCache       EmbeddingCache?
+}
+
+model ItemTag {
+  id        String      @id @default(cuid())
+  itemId    String
+  tagId     String
+
+  item      ArchiveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tag       Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, tagId])
+}
+
+model CertificateMeta {
+  id             String      @id @default(cuid())
+  itemId         String      @unique
+  issuer         String
+  credentialId   String?
+  credentialUrl  String?
+  issueDate      DateTime?
+  expiryDate     DateTime?
+  skills         String?     // JSON array of strings
+  doesExpire     Boolean     @default(false)
+
+  item           ArchiveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model ProjectMeta {
+  id             String      @id @default(cuid())
+  itemId         String      @unique
+  role           String?
+  repositoryUrl  String?
+  liveDemoUrl    String?
+  techStack      String?     // JSON array of strings
+  deliverables   String?     // JSON array of strings
+  startDate      DateTime?
+  endDate        DateTime?
+
+  item           ArchiveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model AchievementMeta {
+  id                    String      @id @default(cuid())
+  itemId                String      @unique
+  organization          String?
+  awardRank             String?
+  awardDate             DateTime?
+  verificationProofUrl  String?
+
+  item                  ArchiveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model NoteMeta {
+  id              String      @id @default(cuid())
+  itemId          String      @unique
+  markdownContent String
+  checklist       String?     // JSON array of items: { text, done }
+
+  item            ArchiveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model EmbeddingCache {
+  id           String      @id @default(cuid())
+  itemId       String      @unique
+  vectorData   String      // JSON float array
+  modelVersion String?
+  updatedAt    DateTime    @updatedAt
+
+  item         ArchiveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String   // CREATED, UPDATED, DELETED, AI_ANALYSIS, SEARCHED
+  entityType String
+  entityId   String?
+  details    String?
+  timestamp  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
