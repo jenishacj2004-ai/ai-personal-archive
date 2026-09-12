@@ -5,7 +5,19 @@
 
 const mongoose = require('mongoose');
 
+let cachedConnection = null;
+
 const connectDB = async () => {
+  // If already connected, return existing connection
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  // If currently connecting, return the existing connection promise
+  if (cachedConnection && mongoose.connection.readyState === 2) {
+    return cachedConnection;
+  }
+
   const mongoUri = process.env.MONGO_URI;
 
   if (!mongoUri || mongoUri.includes('YOUR_MONGODB_ATLAS_CONNECTION_STRING') || mongoUri.includes('<username>')) {
@@ -16,16 +28,19 @@ const connectDB = async () => {
   }
 
   try {
-    const conn = await mongoose.connect(mongoUri, {
-      dbName: 'personal_archiver', // Explicitly use database 'personal_archiver'
+    cachedConnection = mongoose.connect(mongoUri, {
+      dbName: 'personal_archiver',
       serverSelectionTimeoutMS: 5000,
     });
 
-    console.log(`✅ MongoDB Connected Successfully: ${conn.connection.host}`);
-    console.log(`📦 Database: ${conn.connection.name}`);
-    return conn;
+    await cachedConnection;
+
+    console.log(`✅ MongoDB Connected Successfully: ${mongoose.connection.host || 'Atlas Cluster'}`);
+    console.log(`📦 Database: ${mongoose.connection.name || 'personal_archiver'}`);
+    return mongoose.connection;
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);
+    cachedConnection = null;
     // Don't exit process in development if user is still entering credentials
     if (process.env.NODE_ENV === 'production') {
       process.exit(1);

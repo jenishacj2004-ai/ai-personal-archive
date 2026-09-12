@@ -9,6 +9,7 @@ const authRoutes = require('../routes/authRoutes');
 const memoryRoutes = require('../routes/memoryRoutes');
 const userRoutes = require('../routes/userRoutes');
 const User = require('../models/User');
+const Memory = require('../models/Memory');
 
 const app = express();
 app.use(express.json());
@@ -96,6 +97,7 @@ async function runRouteTests() {
     // Mock Database for Authenticated user tests
     const originalFindById = User.findById;
     const originalFind = User.find;
+    const originalMemoryFind = Memory.find;
 
     const mockRegularUser = {
       _id: 'user_12345',
@@ -127,6 +129,13 @@ async function runRouteTests() {
       select: () => ({
         sort: () => Promise.resolve([mockRegularUser, mockAdminUser])
       })
+    });
+
+    Memory.find = () => ({
+      sort: () => Promise.resolve([
+        { _id: 'mem_1', title: 'Test Memory 1', user: mockRegularUser._id },
+        { _id: 'mem_2', title: 'Test Memory 2', user: mockRegularUser._id }
+      ])
     });
 
     const userToken = jwt.sign({ id: mockRegularUser._id, role: mockRegularUser.role }, JWT_SECRET, { expiresIn: '1h' });
@@ -184,6 +193,7 @@ async function runRouteTests() {
     // Restore DB mocks
     User.findById = originalFindById;
     User.find = originalFind;
+    Memory.find = originalMemoryFind;
 
     console.log(`\n========================================`);
     console.log(`🏁 Integration Tests: ${passed} passed, ${failed} failed`);
