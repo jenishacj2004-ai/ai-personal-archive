@@ -63,6 +63,15 @@ export default function Sidebar({ isOpen = true, onClose, storageUsedFormatted =
             <p className="text-[11px] text-slate-400">Intelligent Digital Vault</p>
           </div>
         </Link>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 md:hidden transition-colors"
+            aria-label="Close sidebar"
+          >
+            <span className="text-lg leading-none">✕</span>
+          </button>
+        )}
       </div>
 
       {/* Navigation Links */}

@@ -40,6 +40,17 @@ export default function DashboardLayout({
     };
 
     fetchUserAndStats();
+
+    // Global Cmd+K / Ctrl+K shortcut listener
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchModalOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [router]);
 
   return (
